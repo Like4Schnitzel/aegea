@@ -1,5 +1,5 @@
 import { Client, SendableChannels } from "discord.js";
-import { getPost, getRandomPost } from "./safebooruApi";
+import { getRandomPost } from "./safebooruApi";
 import { Job } from "./jobStore";
 
 export async function sendPost(client: Client<true>, job: Job) {
@@ -13,12 +13,8 @@ export async function sendPost(client: Client<true>, job: Job) {
             throw Error(`Failed to get post ${postId}.`);
         }
 
-        sendableChannel.send({
-            files: [{
-                attachment,
-                name: "file.png"
-            }],
-            content: job.message
+        return sendableChannel.send({
+            content: `${job.message}\n[source](${attachment})`
         });
     }
 }
