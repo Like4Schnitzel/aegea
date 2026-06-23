@@ -11,6 +11,14 @@ export async function getJobs() {
     return db.select().from(jobTable);
 }
 
+export async function findJobsByServer(serverId: string) {
+    return db.select().from(jobTable).where(eq(jobTable.guildId, serverId));
+}
+
+export async function findJobsByChannel(channelId: string) {
+    return db.select().from(jobTable).where(eq(jobTable.channelId, channelId));
+}
+
 // in 1.0 it would be possible to just return 1 row but we're not in 1.0 so whatever
 export async function findPostBySitePostId(sitePostId: number) {
     return db.select({id: postTable.id}).from(postTable).where(eq(postTable.sitePostId, sitePostId));
