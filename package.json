@@ -1,0 +1,25 @@
+{
+  "name": "aegea",
+  "version": "1.0.0",
+  "description": "",
+  "repository": {
+    "type": "git",
+    "url": "aegea"
+  },
+  "license": "ISC",
+  "author": "like4schnitzel",
+  "type": "module",
+  "scripts": {
+    "push-db": "npx drizzle-kit push",
+    "main": "npx tsx ./src/scripts/index.ts",
+    "deploy": "npx tsx ./src/scripts/deploy-commands.ts"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.17.3",
+    "discord.js": "^14.26.3",
+    "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2",
+    "node-html-parser": "^8.0.2"
+  }
+}
