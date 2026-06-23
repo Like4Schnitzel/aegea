@@ -57,7 +57,7 @@ client.once(Events.ClientReady, readyClient => {
             setTimeout(() => {
                 setInterval(() => {
                     try {
-                        sendPost(readyClient, job.channelId, job.tags);
+                        sendPost(readyClient, job);
                     } catch (e) {
                         console.error(e);
                     }

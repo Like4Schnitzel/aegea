@@ -13,6 +13,10 @@ const data = new SlashCommandBuilder()
             .setDescription('Safebooru tags to search by')
             .setRequired(true)
     )
+    .addStringOption(option => 
+        option.setName('message')
+            .setDescription('Custom message to be sent with each post')
+    )
     .addIntegerOption(option =>
         option.setName('intervalseconds')
             .setDescription('Number of seconds between posts')
@@ -48,20 +52,26 @@ export default {
         const intervalDays = optionsInteraction.options.getInteger('intervaldays') ?? 0;
         const cron = optionsInteraction.options.getString('cron') ?? 0;
 
-        if (cron && (intervalSeconds || intervalMinutes || intervalHours || intervalDays)) {
-            interaction.reply({
-                content: "Error: You can't supply both a cron interval and a unit intevral.",
+        const secondsDelay = intervalSeconds +
+        intervalMinutes * 60 +
+        intervalHours * 60 * 60 +
+        intervalDays * 60 * 60 * 24;
+
+        if (cron && secondsDelay) {
+            return interaction.reply({
+                content: "Error: You can't supply both a cron interval and a unit interval.",
                 flags: MessageFlagsBitField.Flags.Ephemeral
             });
-            return;
+        }
+        if (!cron && !secondsDelay) {
+            return interaction.reply({
+                content: "Error: You must supply either a cron interval or a unit interval.",
+                flags: MessageFlagsBitField.Flags.Ephemeral
+            });
         }
 
-        const secondsDelay = intervalSeconds +
-            intervalMinutes * 60 +
-            intervalHours * 60 * 60 +
-            intervalDays * 60 * 60 * 24;
-
         const taglist = optionsInteraction.options.getString('taglist');
+        const message = optionsInteraction.options.getString('message');
 
         try {
             const intervalType = secondsDelay ? IntervalTypes.seconds : IntervalTypes.cron;
@@ -72,7 +82,8 @@ export default {
                 userId: interaction.user.id,
                 tagList: taglist,
                 intervalType: intervalType,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                message
             };
 
             let job: Job | undefined;
@@ -83,7 +94,8 @@ export default {
                     secondsDelay,
                     start: dbEntry.timestamp,
                     channelId: dbEntry.channelId,
-                    tags: taglist
+                    tags: taglist,
+                    message
                 }
             } else {
                 dbEntry.intervalCron = cron;
@@ -91,7 +103,8 @@ export default {
                     type: "cron",
                     tags: taglist,
                     channelId: dbEntry.channelId,
-                    cron
+                    cron,
+                    message
                 }
             }
 
@@ -99,7 +112,7 @@ export default {
             jobs.push(job);
 
             interaction.reply({
-                content: `secondsDelay: ${secondsDelay}`,
+                content: `Successfully created job! Will send random \`${taglist}\` post every ${secondsDelay} seconds`,
                 flags: MessageFlagsBitField.Flags.Ephemeral
             });
         } catch(e: any) {

@@ -1,13 +1,14 @@
 import { Client, SendableChannels } from "discord.js";
 import { getPost, getRandomPost } from "./safebooruApi";
+import { Job } from "./jobStore";
 
-export async function sendPost(client: Client<true>, channelId: string, tags: string) {
-    const channel = await client.channels.fetch(channelId);
+export async function sendPost(client: Client<true>, job: Job) {
+    const channel = await client.channels.fetch(job.channelId);
     if (channel?.isSendable()) {
         const sendableChannel = channel as SendableChannels;
 
         const postId = 6893136;
-        const attachment = await getRandomPost(tags);
+        const attachment = await getRandomPost(job.tags);
         if (!attachment) {
             throw Error(`Failed to get post ${postId}.`);
         }
@@ -17,7 +18,7 @@ export async function sendPost(client: Client<true>, channelId: string, tags: st
                 attachment,
                 name: "file.png"
             }],
-            content: "Test :3"
+            content: job.message
         });
     }
 }

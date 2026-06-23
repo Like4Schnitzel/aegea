@@ -7,12 +7,14 @@ export type Job = {
     secondsDelay: number
     start: number,
     tags: string,
-    channelId: string
+    channelId: string,
+    message: string
 } | {
     type: "cron"
     cron: string,
     tags: string,
-    channelId: string
+    channelId: string,
+    message: string
 }
 
 export const jobs: Job[] = [];
@@ -26,14 +28,16 @@ export async function loadJobs() {
                 secondsDelay: job.intervalSeconds!,
                 start: job.timestamp,
                 tags: job.tagList,
-                channelId: job.channelId
+                channelId: job.channelId,
+                message: job.message
             }
         } else {
             return {
                 type: "cron",
                 cron: job.intervalCron!,
                 tags: job.tagList,
-                channelId: job.channelId
+                channelId: job.channelId,
+                message: job.message
             }
         }
     })) {
