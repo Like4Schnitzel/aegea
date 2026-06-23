@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "./env";
 import { createIntervalTypes } from "./intervals";
 import { jobTable, postTable, sentTable } from "./schema";
+import { jobTasks } from "./jobStore";
 
 export async function setupDb() {
     createIntervalTypes();
@@ -9,6 +10,29 @@ export async function setupDb() {
 
 export async function getJobs() {
     return db.select().from(jobTable);
+}
+
+export async function findJobById(id: number) {
+    return db.select().from(jobTable).where(eq(jobTable.id, id));
+}
+
+export async function deleteJob(id: number) {
+    try {
+        await db.delete(sentTable).where(eq(sentTable.jobId, id));
+        await db.delete(jobTable).where(eq(jobTable.id, id));
+        const jobTask = jobTasks.find(j => j.jobId === id);
+        if (jobTask) {
+            clearTimeout(jobTask.timeout);
+            if (jobTask.interval) {
+                clearInterval(jobTask.interval);
+            }
+        }
+    } catch (e: unknown) {
+        console.log(e);
+        if (e instanceof Error) {
+            return e;
+        }
+    }
 }
 
 export async function findJobsByServer(serverId: string) {

@@ -1,7 +1,6 @@
 import { ChatInputCommandInteraction, MessageFlagsBitField, SlashCommandBuilder } from "discord.js";
 import { findJobsByChannel, findJobsByServer } from "../lib/dbScripts";
-import { Job } from "../lib/jobStore";
-import { IntervalTypes } from "../lib/intervals";
+import { Job, jobToString } from "../lib/jobStore";
 
 const data = new SlashCommandBuilder()
     .setName('listjobs')
@@ -27,17 +26,7 @@ export default {
             jobs = await findJobsByChannel(interaction.channelId);
         }
 
-        const jobsString = jobs?.map(j => {
-            let string = "";
-            string += `ID: ${j.id}; `
-            string += `Tags: \`${j.tagList}\`; `
-            string += `Interval: ${j.intervalSeconds || j.intervalCron}${j.intervalType === IntervalTypes.seconds ? 's' : ''}; `
-            string += `Created by: <@${j.userId}>; `
-            if (global) {
-                string += `Channel: <#${j.channelId}>;`
-            }
-            return string;
-        }).reduce((a, b) => a + b + "\n", "");
+        const jobsString = jobs?.map(job => jobToString(job, global)).reduce((a, b) => a + b + "\n", "");
 
         return interaction.reply({
             content: jobsString,
