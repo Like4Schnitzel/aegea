@@ -3,9 +3,7 @@ import { discordToken } from '../lib/env';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { setupDb } from '../lib/dbScripts';
-import { jobs, loadJobs } from '../lib/jobStore';
-import { sendPost } from '../lib/post';
-import { IntervalTypes } from '../lib/intervals';
+import { createJobTask, getJobs } from '../lib/jobStore';
 
 type ActualClient = Client<boolean> & {
     commands: Collection<string, { execute: Function }>
@@ -19,8 +17,6 @@ const commandFiles = readdirSync(COMMAND_DIR_PATH).filter(file => file.endsWith(
 
 await setupDb();
 console.log("Interval Types written to DB.");
-await loadJobs();
-console.log("Jobs loaded:", jobs);
 
 for (const file of commandFiles) {
     const filePath = join('../commands', file);
@@ -50,22 +46,12 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 });
 
-client.once(Events.ClientReady, readyClient => {
+client.once(Events.ClientReady, async (readyClient) => {
     console.log(`Ready! Logged in as ${readyClient.user.tag}`);
+    const jobs = await getJobs();
+    console.log("Jobs loaded:", jobs);
     for (const job of jobs) {
-        if (job.intervalType == IntervalTypes.seconds) {
-            const msInterval = job.intervalSeconds! * 1000;
-            const msToNextPost = job.timestamp % msInterval;
-            setTimeout(() => {
-                setInterval(() => {
-                    try {
-                        sendPost(readyClient, job);
-                    } catch (e) {
-                        console.error(e);
-                    }
-                }, msInterval);
-            }, msToNextPost);
-        }
+        createJobTask(readyClient, job);
     }
     console.log("Job timeouts created!");
 });

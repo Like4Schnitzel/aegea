@@ -2,7 +2,7 @@ import { CommandInteraction, MessageFlagsBitField, SlashCommandBuilder } from "d
 import { jobTable } from "../lib/schema";
 import { db } from "../lib/env";
 import { IntervalTypes } from "../lib/intervals";
-import { jobs } from "../lib/jobStore";
+import { createJobTask } from "../lib/jobStore";
 
 const data = new SlashCommandBuilder()
     .setName('createjob')
@@ -93,7 +93,7 @@ export default {
             }
 
             const job = await db.insert(jobTable).values(dbEntry).returning();
-            jobs.push(job.at(0)!);
+            createJobTask(interaction.client, job[0]);
 
             interaction.reply({
                 content: `Successfully created job! Will send random \`${taglist}\` post every ${secondsDelay} seconds`,
