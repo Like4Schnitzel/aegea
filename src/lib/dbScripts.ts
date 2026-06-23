@@ -1,5 +1,36 @@
+import { and, eq } from "drizzle-orm";
+import { db } from "./env";
 import { createIntervalTypes } from "./intervals";
+import { jobTable, postTable, sentTable } from "./schema";
 
 export async function setupDb() {
-    await createIntervalTypes();
+    createIntervalTypes();
+}
+
+export async function getJobs() {
+    return db.select().from(jobTable);
+}
+
+// in 1.0 it would be possible to just return 1 row but we're not in 1.0 so whatever
+export async function findPostBySitePostId(sitePostId: number) {
+    return db.select({id: postTable.id}).from(postTable).where(eq(postTable.sitePostId, sitePostId));
+}
+
+export async function findSent(jobId: number, postId: number) {
+    return db.select().from(sentTable).where(and(eq(sentTable.jobId, jobId), eq(sentTable.postId, postId)));
+}
+
+export async function hasPostBeenSent(jobId: number, postId: number) {
+    return (await db.select()
+        .from(sentTable)
+        .innerJoin(postTable, eq(postTable.id, sentTable.postId))
+        .where(and(eq(sentTable.jobId, jobId), eq(postTable.sitePostId, postId)))
+    ).length > 0;
+}
+
+export function findSentPostsByJob(jobId: number) {
+    return db.select({
+        id: postTable.id,
+        sitePostId: postTable.sitePostId
+    }).from(postTable).innerJoin(sentTable, eq(sentTable.postId, postTable.id)).where(eq(sentTable.jobId, jobId));
 }

@@ -83,7 +83,7 @@ export default {
                 tagList: taglist,
                 intervalType: intervalType,
                 timestamp: Date.now(),
-                message
+                message: message ?? ""
             };
 
             if (intervalType == IntervalTypes.seconds) {

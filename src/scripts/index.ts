@@ -2,8 +2,8 @@ import { Client, Collection, Events, GatewayIntentBits } from 'discord.js';
 import { discordToken } from '../lib/env';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { setupDb } from '../lib/dbScripts';
-import { createJobTask, getJobs } from '../lib/jobStore';
+import { getJobs, setupDb } from '../lib/dbScripts';
+import { createJobTask } from '../lib/jobStore';
 
 type ActualClient = Client<boolean> & {
     commands: Collection<string, { execute: Function }>

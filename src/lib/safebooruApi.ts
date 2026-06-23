@@ -1,90 +1,89 @@
-import {parse} from "node-html-parser";
+import { parse } from "node-html-parser";
+import { Post, SafebooruApiPost } from "./types";
+
+const MAX_POSTS_PER_PAGE = 1000;
 
 const HOST = "https://safebooru.org"
 const PATH = "/index.php"
 
-// Indexing starts at 0
-async function getTotalPosts(tags: string) {
+async function fetchTotalPosts(tags: string) {
     const url = new URL(HOST);
     url.pathname = PATH;
-    url.searchParams.set("page", "post");
-    url.searchParams.set("s", "list");
-    url.searchParams.set("tags", tags);
-    
-    const page = await fetch(url);
-    const document = parse(await page.text());
-    const lastPageAnchor = document.querySelector("a[alt='last page']") as HTMLAnchorElement | null;
-    const lastPageSearchParams = lastPageAnchor?.getAttribute("href");
-
-    if (!lastPageSearchParams) {
-        throw Error(`Could not find last page button on page ${url}`);
-    }
-
-    const lastPageUrl = new URL(`${HOST}${PATH}${lastPageSearchParams}`);
-    const lastPagePid = lastPageUrl.searchParams.get("pid");
-    if (!lastPagePid) {
-        throw Error(`Could not find pid search param for page ${lastPageUrl}`);
-    }
-
-    const lastPage = await fetch(lastPageUrl); // actually just params
-    const lastPageDocument = parse(await lastPage.text());
-    const images = lastPageDocument.querySelectorAll("#content .thumb");
-
-    return parseInt(lastPagePid) + images.length;
-}
-
-async function getPostIdByTagsAndPid(tags: string, pid: number) {
-    const url = new URL(HOST);
-    url.pathname = PATH;
-    url.searchParams.set("page", "post");
-    url.searchParams.set("s", "list");
-    url.searchParams.set("tags", tags);
-    url.searchParams.set("pid", pid.toString());
-
-    const page = await fetch(url);
-    const document = parse(await page.text());
-    const firstImageAnchor = document.querySelector("div.content a") as HTMLAnchorElement | null;
-    const href = firstImageAnchor?.getAttribute("href");
-
-    if (!href) {
-        throw Error(`Could not find first image href for page ${url}`);
-    }
-
-    const imageUrl = new URL(`${HOST}${href}`);
-    const id = imageUrl.searchParams.get("id");
-    return id;
-}
-
-export async function getRandomPost(tags: string) {
-    const url = new URL(HOST);
-    url.pathname = PATH;
-    url.searchParams.set("page", "post");
-    url.searchParams.set("s", "list");
+    url.searchParams.set("page", "dapi");
+    url.searchParams.set("s", "post");
+    url.searchParams.set("limit", "0");
+    url.searchParams.set("q", "index");
     url.searchParams.set("tags", tags);
 
-    const totalPosts = await getTotalPosts(tags);
-    const randomPid = Math.floor(Math.random() * totalPosts);
-    const id = await getPostIdByTagsAndPid(tags, randomPid);
+    const page = await fetch(url);
+    const text = await page.text();
+    const xml = parse(text);
+    const postsTag = xml.querySelector("posts");
+    const total = postsTag?.getAttribute("count");
 
-    if (!id) {
-        return null;
+    if (!total) {
+        throw Error(`Couldn't get posts count from ${url}`);
     }
 
-    const post = getPost(id);
-    return post;
+    return parseInt(total);
 }
 
-export async function getPost(id: string) {
+export async function fetchRandomPost(tags: string, alreadySentIds: Set<number>) {
+    const totalPosts = await fetchTotalPosts(tags);
+    const validIndices: Set<number> = new Set();
+    for (let i = 0; i < totalPosts; i++) { validIndices.add(i); }
+
+    let iterations = 0;
+    while (iterations < 1000) {
+        iterations++;
+
+        const randomIndex = Math.floor(Math.random() * validIndices.size);
+        const pageIndex = Math.floor(randomIndex / MAX_POSTS_PER_PAGE);
+        const offset = pageIndex * 1000;
+        const range = await fetchRange(tags, pageIndex);
+        const wantedPost = range.at(randomIndex-offset)!;
+        if (alreadySentIds.has(wantedPost.postId)) {
+            const duplicateIndices = getDuplicateIndices(range, alreadySentIds);
+            duplicateIndices.forEach((i) => validIndices.delete(offset + i));
+            if (validIndices.size == 0) {
+                return null;
+            }
+        } else {
+            return wantedPost;
+        }
+    }
+
+    throw Error("Something probably went wrong.");
+}
+
+async function fetchRange(tags: string, pageId: number): Promise<Post[]> {
     const url = new URL(HOST);
     url.pathname = PATH;
-    url.searchParams.set("page", "post");
-    url.searchParams.set("s", "view");
-    url.searchParams.set("id", id);
+    url.searchParams.set("page", "dapi");
+    url.searchParams.set("s", "post");
+    url.searchParams.set("json", "1");
+    url.searchParams.set("q", "index");
+    url.searchParams.set("limit", MAX_POSTS_PER_PAGE.toString());
+    url.searchParams.set("tags", tags);
+    url.searchParams.set("pid", pageId.toString());
 
     const page = await fetch(url);
-    const document = parse(await page.text());
+    const json: SafebooruApiPost[] = await page.json();
+    return json.map((o) => {return {
+        fileUrl: o.file_url,
+        postUrl: `${HOST}${PATH}?page=post&s=view&id=${o.id}`,
+        source: o.source,
+        postId: o.id
+    }});
+}
 
-    const originalImageA = document.querySelector("a[style='font-weight: bold;']") as HTMLAnchorElement | null;
-    const href = originalImageA?.getAttribute("href");
-    return href;
+function getDuplicateIndices(range: Post[], alreadySentIds: Set<number>) {
+    const duplicateIndices: number[] = [];
+    for (let i = 0; i < range.length; i++) {
+        const post = range[i];
+        if (alreadySentIds.has(post.postId)) {
+            duplicateIndices.push(i);
+        }
+    }
+    return duplicateIndices;
 }

@@ -12,10 +12,6 @@ export type JobTask = {
 
 export const jobTasks: JobTask[] = [];
 
-export async function getJobs() {
-    return await db.select().from(jobTable);
-}
-
 export async function createJobTask(client: Client<true>, job: Job) {
     const callback = () => {
         try {
