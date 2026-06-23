@@ -2,7 +2,7 @@ import { CommandInteraction, MessageFlagsBitField, SlashCommandBuilder } from "d
 import { jobTable } from "../lib/schema";
 import { db } from "../lib/env";
 import { IntervalTypes } from "../lib/intervals";
-import { Job, jobs } from "../lib/jobStore";
+import { jobs } from "../lib/jobStore";
 
 const data = new SlashCommandBuilder()
     .setName('createjob')
@@ -86,30 +86,14 @@ export default {
                 message
             };
 
-            let job: Job | undefined;
             if (intervalType == IntervalTypes.seconds) {
                 dbEntry.intervalSeconds = secondsDelay;
-                job = {
-                    type: "seconds",
-                    secondsDelay,
-                    start: dbEntry.timestamp,
-                    channelId: dbEntry.channelId,
-                    tags: taglist,
-                    message
-                }
             } else {
                 dbEntry.intervalCron = cron;
-                job = {
-                    type: "cron",
-                    tags: taglist,
-                    channelId: dbEntry.channelId,
-                    cron,
-                    message
-                }
             }
 
-            await db.insert(jobTable).values(dbEntry);
-            jobs.push(job);
+            const job = await db.insert(jobTable).values(dbEntry).returning();
+            jobs.push(job.at(0)!);
 
             interaction.reply({
                 content: `Successfully created job! Will send random \`${taglist}\` post every ${secondsDelay} seconds`,

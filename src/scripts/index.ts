@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { setupDb } from '../lib/dbScripts';
 import { jobs, loadJobs } from '../lib/jobStore';
 import { sendPost } from '../lib/post';
+import { IntervalTypes } from '../lib/intervals';
 
 type ActualClient = Client<boolean> & {
     commands: Collection<string, { execute: Function }>
@@ -52,8 +53,9 @@ client.on(Events.InteractionCreate, async interaction => {
 client.once(Events.ClientReady, readyClient => {
     console.log(`Ready! Logged in as ${readyClient.user.tag}`);
     for (const job of jobs) {
-        if (job.type == "seconds") {
-            const msToNextPost = job.start % (job.secondsDelay * 1000);
+        if (job.intervalType == IntervalTypes.seconds) {
+            const msInterval = job.intervalSeconds! * 1000;
+            const msToNextPost = job.timestamp % msInterval;
             setTimeout(() => {
                 setInterval(() => {
                     try {
@@ -61,7 +63,7 @@ client.once(Events.ClientReady, readyClient => {
                     } catch (e) {
                         console.error(e);
                     }
-                }, job.secondsDelay * 1000);
+                }, msInterval);
             }, msToNextPost);
         }
     }
