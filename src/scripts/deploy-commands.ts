@@ -25,7 +25,7 @@ const rest = new REST({version:'10'}).setToken(discordToken);
 		const data = await rest.put(
 			Routes.applicationCommands(clientId),
 			{ body: commands },
-		) as any[];
+		) as unknown[];
 
 		console.log(`Successfully reloaded ${data.length} application (/) commands.`);
 	} catch (error) {

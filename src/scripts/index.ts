@@ -1,4 +1,4 @@
-import { Client, Collection, Events, GatewayIntentBits } from 'discord.js';
+import { CacheType, ChatInputCommandInteraction, Client, Collection, Events, GatewayIntentBits } from 'discord.js';
 import { discordToken } from '../lib/env';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -6,7 +6,7 @@ import { getJobs, setupDb } from '../lib/dbScripts';
 import { createJobTask } from '../lib/jobStore';
 
 type ActualClient = Client<boolean> & {
-    commands: Collection<string, { execute: Function }>
+    commands: Collection<string, { execute: (x: ChatInputCommandInteraction<CacheType>) => Promise<void> }>
 };
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] }) as ActualClient;

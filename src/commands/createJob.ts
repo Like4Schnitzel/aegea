@@ -1,4 +1,4 @@
-import { CommandInteraction, MessageFlagsBitField, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, MessageFlagsBitField, SlashCommandBuilder } from "discord.js";
 import { jobTable } from "../lib/schema";
 import { db } from "../lib/env";
 import { IntervalTypes } from "../lib/intervals";
@@ -44,13 +44,12 @@ const data = new SlashCommandBuilder()
 
 export default {
     data,
-    async execute(interaction: CommandInteraction) {
-        const optionsInteraction = interaction as any;
-        const intervalSeconds = optionsInteraction.options.getInteger('intervalseconds') ?? 0;
-        const intervalMinutes = optionsInteraction.options.getInteger('intervalminutes') ?? 0;
-        const intervalHours = optionsInteraction.options.getInteger('intervalhours') ?? 0;
-        const intervalDays = optionsInteraction.options.getInteger('intervaldays') ?? 0;
-        const cron = optionsInteraction.options.getString('cron') ?? 0;
+    async execute(interaction: ChatInputCommandInteraction) {
+        const intervalSeconds = interaction.options.getInteger('intervalseconds') ?? 0;
+        const intervalMinutes = interaction.options.getInteger('intervalminutes') ?? 0;
+        const intervalHours = interaction.options.getInteger('intervalhours') ?? 0;
+        const intervalDays = interaction.options.getInteger('intervaldays') ?? 0;
+        const cron = interaction.options.getString('cron');
 
         const secondsDelay = intervalSeconds +
         intervalMinutes * 60 +
@@ -70,8 +69,8 @@ export default {
             });
         }
 
-        const taglist = optionsInteraction.options.getString('taglist');
-        const message = optionsInteraction.options.getString('message');
+        const tagList = interaction.options.getString('taglist');
+        const message = interaction.options.getString('message');
 
         try {
             const intervalType = secondsDelay ? IntervalTypes.seconds : IntervalTypes.cron;
@@ -80,26 +79,22 @@ export default {
                 guildId: interaction.guildId!,
                 channelId: interaction.channelId,
                 userId: interaction.user.id,
-                tagList: taglist,
+                tagList: tagList!,
                 intervalType: intervalType,
                 timestamp: Date.now(),
-                message: message ?? ""
+                message: message ?? "",
+                intervalSeconds: secondsDelay,
+                intervalCron: cron
             };
-
-            if (intervalType == IntervalTypes.seconds) {
-                dbEntry.intervalSeconds = secondsDelay;
-            } else {
-                dbEntry.intervalCron = cron;
-            }
 
             const job = await db.insert(jobTable).values(dbEntry).returning();
             createJobTask(interaction.client, job[0]);
 
             interaction.reply({
-                content: `Successfully created job! Will send random \`${taglist}\` post every ${secondsDelay} seconds`,
+                content: `Successfully created job! Will send random \`${tagList}\` post every ${secondsDelay} seconds`,
                 flags: MessageFlagsBitField.Flags.Ephemeral
             });
-        } catch(e: any) {
+        } catch(e: unknown) {
             if (e instanceof Error) {
                 console.error(e);
                 interaction.reply({

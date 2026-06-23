@@ -1,6 +1,5 @@
 import { Client } from "discord.js";
-import { db } from "./env"
-import { intervalTypes, IntervalTypes } from "./intervals"
+import { IntervalTypes } from "./intervals"
 import { sendPost } from "./post";
 import { jobTable } from "./schema"
 
