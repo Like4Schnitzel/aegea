@@ -24,7 +24,7 @@ export function jobToString(job: Job, showChannel: boolean) {
     return string;
 }
 
-export async function createJobTask(client: Client<true>, job: Job) {
+export async function createJobTask(client: Client<true>, job: Job, initialDelay: number | null = null) {
     const callback = () => {
         try {
             sendPost(client, job);
@@ -34,14 +34,17 @@ export async function createJobTask(client: Client<true>, job: Job) {
     }
     
     if (job.intervalType === IntervalTypes.seconds) {
+        const currentTime = Date.now();
         const msInterval = job.intervalSeconds! * 1000;
-        const msToNextPost = msInterval - (job.timestamp % msInterval);
+        const nextPostTimestamp = job.timestamp + msInterval * Math.ceil((currentTime - job.timestamp) / msInterval);
+        const msToNextPost = nextPostTimestamp - currentTime;
+
         const task: JobTask = {
             jobId: job.id,
             timeout: setTimeout(() => {
                 callback();
                 task.interval = setInterval(callback, msInterval);
-            }, msToNextPost),
+            }, initialDelay !== null ? 0 : msToNextPost),
             interval: null,
         }
         jobTasks.push(task);

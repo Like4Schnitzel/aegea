@@ -71,6 +71,7 @@ export default {
 
         const tagList = interaction.options.getString('taglist');
         const message = interaction.options.getString('message');
+        const initialDelay = interaction.options.getInteger('initialdelay') ?? 0;
 
         try {
             const intervalType = secondsDelay ? IntervalTypes.seconds : IntervalTypes.cron;
@@ -81,14 +82,14 @@ export default {
                 userId: interaction.user.id,
                 tagList: tagList!,
                 intervalType: intervalType,
-                timestamp: Date.now(),
+                timestamp: Date.now() + initialDelay * 1000,
                 message: message ?? "",
                 intervalSeconds: secondsDelay,
-                intervalCron: cron
+                intervalCron: cron,
             };
 
             const job = await db.insert(jobTable).values(dbEntry).returning();
-            createJobTask(interaction.client, job[0]);
+            createJobTask(interaction.client, job[0], initialDelay);
 
             interaction.reply({
                 content: `Successfully created job! Will send random \`${tagList}\` post every ${secondsDelay} seconds`,
