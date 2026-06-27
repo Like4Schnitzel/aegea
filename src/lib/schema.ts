@@ -16,7 +16,8 @@ export const jobTable = sqliteTable("job", {
     intervalType: int("interval_type_id").notNull().references(() => intervalTypeTable.id),
     intervalSeconds: int("interval_seconds"),
     intervalCron: text("interval_cron"),
-    message: text("message").default("").notNull()
+    message: text("message").default("").notNull(),
+    catchupLimit: int("catchup_limit").default(0).notNull()
 }, (table) => [
     check("one_interval_given_check", sql`(${table.intervalSeconds} IS NOT NULL AND ${table.intervalCron} IS NULL) OR (${table.intervalSeconds} IS NULL AND ${table.intervalCron} IS NOT NULL)`)
 ]);
@@ -28,7 +29,8 @@ export const postTable = sqliteTable("post", {
 
 export const sentTable = sqliteTable("sent", {
     jobId: int("job_id").notNull().references(() => jobTable.id),
-    postId: int("post_id").notNull().references(() => postTable.id)
+    postId: int("post_id").notNull().references(() => postTable.id),
+    timestamp: int("timestamp").notNull()
 }, (table) => [
     primaryKey({columns: [table.jobId, table.postId]})
 ]);
