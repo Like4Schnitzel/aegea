@@ -28,7 +28,8 @@ export const postTable = sqliteTable("post", {
 
 export const sentTable = sqliteTable("sent", {
     jobId: int("job_id").notNull().references(() => jobTable.id),
-    postId: int("post_id").notNull().references(() => postTable.id)
+    postId: int("post_id").notNull().references(() => postTable.id),
+    timestamp: int("timestamp").notNull()
 }, (table) => [
     primaryKey({columns: [table.jobId, table.postId]})
 ]);
