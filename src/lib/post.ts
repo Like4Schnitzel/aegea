@@ -33,25 +33,32 @@ export async function sendPost(client: Client<true>, job: Job) {
     }
 }
 
-export function catchUpOnPosts(client: Client<true>, job: Job) {
+export async function catchUpOnPosts(client: Client<true>, job: Job) {
     if (job.intervalType !== IntervalTypes.seconds) return;
-    
-    for (let i = 0; i < job.catchupLimit; i++) {
+
+    let limit = job.catchupLimit;
+    for (let i = 0; i < limit; i++) {
         const msInterval = job.intervalSeconds! * MILISECONDS_PER_SECOND;
         const referenceTime = Date.now() - msInterval * i;
+        if (referenceTime < job.timestamp) {
+            break;
+        }
+
         const nextPostTimestamp = job.timestamp + msInterval * Math.ceil((referenceTime - job.timestamp) / msInterval);
         const expectedPreviousPostTimeStamp = nextPostTimestamp - msInterval;
 
-        countSentPostsBetweenTimes(job.id, expectedPreviousPostTimeStamp, nextPostTimestamp)
-            .then(count => {
-                if (count === 0) {
-                    sendPost(client, job).catch(error => {
-                        console.error(error);
-                    });
-                }
-            })
-            .catch(error => {
-                console.error(error);
-            });
+        try {
+            const count = await countSentPostsBetweenTimes(job.id, expectedPreviousPostTimeStamp, nextPostTimestamp);
+            if (count === 0) {
+                sendPost(client, job).catch(error => {
+                    console.error(error);
+                });
+            } else if (count) {
+                limit -= count - 1;
+            }
+        }
+        catch (error) {
+            console.error(error);
+        };
     }
 }

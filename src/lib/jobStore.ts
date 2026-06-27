@@ -1,6 +1,6 @@
 import { Client } from "discord.js";
 import { IntervalTypes } from "./intervals";
-import { sendPost } from "./post";
+import { catchUpOnPosts, sendPost } from "./post";
 import { jobTable } from "./schema";
 import { MILISECONDS_PER_SECOND } from "./consts";
 
@@ -28,7 +28,20 @@ export function jobToString(job: Job, showChannel: boolean) {
     return string;
 }
 
-export function createJobTask(client: Client<true>, job: Job, initialDelay: number | null = null) {
+export function createJobTask(client: Client<true>, job: Job,
+        options: {
+            initialDelay?: number,
+            checkCatchUp?: boolean
+        } = {
+            checkCatchUp: true
+        }
+    ) {
+    if (options.checkCatchUp) {
+        catchUpOnPosts(client, job).catch(error => {
+            console.error(error);
+        });
+    }
+
     const callback = () => {
         sendPost(client, job).catch(e => {
             console.error(e);
@@ -46,7 +59,7 @@ export function createJobTask(client: Client<true>, job: Job, initialDelay: numb
             timeout: setTimeout(() => {
                 callback();
                 task.interval = setInterval(callback, msInterval);
-            }, initialDelay !== null ? 0 : msToNextPost),
+            }, options.initialDelay !== undefined ? 0 : msToNextPost),
             interval: null,
         };
         jobTasks.push(task);

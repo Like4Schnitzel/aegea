@@ -98,7 +98,7 @@ export default {
             };
 
             const job = await db.insert(jobTable).values(dbEntry).returning();
-            createJobTask(interaction.client, job[0], initialDelay);
+            createJobTask(interaction.client, job[0], { initialDelay, checkCatchUp: false });
 
             await interaction.reply({
                 content: `Successfully created job! Will send random \`${tagList}\` post every ${secondsDelay} seconds`,
