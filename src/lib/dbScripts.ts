@@ -17,7 +17,7 @@ export async function getJobs() {
 }
 
 export async function findJobById(id: number) {
-    return db.select().from(jobTable).where(eq(jobTable.id, id));
+    return (await db.select().from(jobTable).where(eq(jobTable.id, id))).at(0);
 }
 
 export async function deleteJob(id: number) {

@@ -18,20 +18,20 @@ export default {
     async execute(interaction: ChatInputCommandInteraction) {
         const id = interaction.options.getInteger("id")!;
         const job = await findJobById(id);
-        if (job.at(0)?.guildId !== interaction.guildId) {
+        if (job?.guildId !== interaction.guildId) {
             return interaction.reply({
                 content: `Couldn't find a post with ID ${id}.`,
                 flags: MessageFlagsBitField.Flags.Ephemeral
             });
         }
-        const sameChannel = job[0].channelId === interaction.channelId;
+        const sameChannel = job.channelId === interaction.channelId;
 
         const confirm = new ButtonBuilder().setCustomId('confirm').setLabel('Confirm Delete').setStyle(ButtonStyle.Danger);
 		const cancel = new ButtonBuilder().setCustomId('cancel').setLabel('Cancel').setStyle(ButtonStyle.Secondary);
 		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(cancel, confirm);
 
         const response = await interaction.reply({
-            content: `Are you sure you want to delete this job? [NO UNDO] ${jobToString(job[0], !sameChannel)}`,
+            content: `Are you sure you want to delete this job? [NO UNDO] ${jobToString(job, !sameChannel)}`,
             flags: MessageFlagsBitField.Flags.Ephemeral,
             components: [row],
             withResponse: true
@@ -45,7 +45,7 @@ export default {
                 if (deletion) {
                     return confirmation.update({ content: `Error: ${deletion.message}`, components: [] });
                 } 
-                await confirmation.update({ content: `Successfully deleted job: ${jobToString(job[0], !sameChannel)}`, components: [] });
+                await confirmation.update({ content: `Successfully deleted job: ${jobToString(job, !sameChannel)}`, components: [] });
             } else if (confirmation.customId === 'cancel') {
                 await confirmation.update({ content: 'Deletion cancelled.', components: [] });
             }
