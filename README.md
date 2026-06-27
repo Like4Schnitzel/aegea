@@ -21,3 +21,6 @@ npm run deploy
 npm run push-db
 npm run main
 ```
+
+### Database Migrations
+Migrations should work by just running `npm run push-db`. In the case where that would result in data loss, there is an sql file in the `migrations/` folder. Run the file for whichever migration you need using `sqlite3 local.db "$(cat migrations/n-migration-file.sql)"`, then try `npm run push-db` again.

@@ -23,7 +23,7 @@ export async function sendPost(client: Client<true>, job: Job) {
             dbPost = await db.insert(postTable).values({ sitePostId: attachment.postId }).returning();
         }
         const postId = dbPost[0].id;
-        await db.insert(sentTable).values({ jobId: job.id, postId });
+        await db.insert(sentTable).values({ jobId: job.id, postId, timestamp: Date.now() });
 
         return channel.send({
             content: `${job.message}\n[[source](<${attachment.source}>)] [[link](<${attachment.postUrl}>)] [ [file](${attachment.fileUrl}) ]`
