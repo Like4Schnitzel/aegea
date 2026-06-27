@@ -3,7 +3,9 @@ import { fetchRandomPost } from "./safebooruApi";
 import { Job } from "./jobStore";
 import { postTable, sentTable } from "./schema";
 import { db } from "./env";
-import { findPostBySitePostId, findSentPostsByJob } from "./dbScripts";
+import { countSentPostsBetweenTimes, findPostBySitePostId, findSentPostsByJob } from "./dbScripts";
+import { IntervalTypes } from "./intervals";
+import { MILISECONDS_PER_SECOND } from "./consts";
 
 export async function sendPost(client: Client<true>, job: Job) {
     const channel = await client.channels.fetch(job.channelId);
@@ -28,5 +30,28 @@ export async function sendPost(client: Client<true>, job: Job) {
         return channel.send({
             content: `${job.message}\n[[source](<${attachment.source}>)] [[link](<${attachment.postUrl}>)] [ [file](${attachment.fileUrl}) ]`
         });
+    }
+}
+
+export function catchUpOnPosts(client: Client<true>, job: Job) {
+    if (job.intervalType !== IntervalTypes.seconds) return;
+    
+    for (let i = 0; i < job.catchupLimit; i++) {
+        const msInterval = job.intervalSeconds! * MILISECONDS_PER_SECOND;
+        const currentTime = Date.now();
+        const nextPostTimestamp = job.timestamp + msInterval * Math.ceil((currentTime - job.timestamp) / msInterval);
+        const expectedPreviousPostTimeStamp = nextPostTimestamp - msInterval;
+
+        countSentPostsBetweenTimes(job.id, expectedPreviousPostTimeStamp, nextPostTimestamp)
+            .then(count => {
+                if (count === 0) {
+                    sendPost(client, job).catch(error => {
+                        console.error(error);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error(error);
+            });
     }
 }

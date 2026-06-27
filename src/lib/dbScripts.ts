@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, count, eq, gte, lt } from "drizzle-orm";
 import { db } from "./env";
 import { createIntervalTypes } from "./intervals";
 import { jobTable, postTable, sentTable } from "./schema";
@@ -69,4 +69,14 @@ export function findSentPostsByJob(jobId: number) {
         id: postTable.id,
         sitePostId: postTable.sitePostId
     }).from(postTable).innerJoin(sentTable, eq(sentTable.postId, postTable.id)).where(eq(sentTable.jobId, jobId));
+}
+
+export async function countSentPostsBetweenTimes(jobId: number, milisecondsStart: number, milisecondsEnd: number) {
+    return (await db.select({ count: count(sentTable.postId).as("count") })
+        .from(sentTable)
+        .where(and(
+            eq(sentTable.jobId, jobId),
+            gte(sentTable.timestamp, milisecondsStart),
+            lt(sentTable.timestamp, milisecondsEnd)
+        ))).at(0)?.count;
 }
