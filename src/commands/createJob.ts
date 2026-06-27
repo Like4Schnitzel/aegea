@@ -46,7 +46,7 @@ const data = new SlashCommandBuilder()
     )
     .addIntegerOption(option => 
         option.setName('catchup')
-            .setDescription('How many missed posts to catch up on, should the bot miss any for whatever reason. Does not work for cron. Default: 0')
+            .setDescription('How many missed posts to catch up on, should the bot miss any. Does not work for cron. Default: 0')
     );
 
 export default {
