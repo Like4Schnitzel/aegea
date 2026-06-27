@@ -46,7 +46,7 @@ const data = new SlashCommandBuilder()
     )
     .addIntegerOption(option => 
         option.setName('catchup')
-            .setDescription('How many missed posts to catch up on, should the bot miss any. Does not work for cron. Default: 0')
+            .setDescription('How many missed posts to catch up on, should the bot miss any. Does not work for cron. Default: 1')
     );
 
 export default {
@@ -79,7 +79,7 @@ export default {
         const tagList = interaction.options.getString('taglist');
         const message = interaction.options.getString('message') ?? "";
         const initialDelay = interaction.options.getInteger('initialdelay') ?? 0;
-        const catchupLimit = interaction.options.getInteger('catchup') ?? 0;
+        const catchupLimit = interaction.options.getInteger('catchup') ?? 1;
 
         try {
             const intervalType = secondsDelay ? IntervalTypes.seconds : IntervalTypes.cron;

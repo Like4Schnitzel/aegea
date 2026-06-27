@@ -17,7 +17,7 @@ export const jobTable = sqliteTable("job", {
     intervalSeconds: int("interval_seconds"),
     intervalCron: text("interval_cron"),
     message: text("message").default("").notNull(),
-    catchupLimit: int("catchup_limit").default(0).notNull()
+    catchupLimit: int("catchup_limit").default(1).notNull()
 }, (table) => [
     check("one_interval_given_check", sql`(${table.intervalSeconds} IS NOT NULL AND ${table.intervalCron} IS NULL) OR (${table.intervalSeconds} IS NULL AND ${table.intervalCron} IS NOT NULL)`)
 ]);
