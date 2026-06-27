@@ -43,6 +43,10 @@ const data = new SlashCommandBuilder()
     .addStringOption(option =>
         option.setName('cron')
             .setDescription('Alternative interval specifier using cron syntax')
+    )
+    .addIntegerOption(option => 
+        option.setName('catchup')
+            .setDescription('How many missed posts to catch up on, should the bot miss any for whatever reason. Default: 0')
     );
 
 export default {
@@ -73,8 +77,9 @@ export default {
         }
 
         const tagList = interaction.options.getString('taglist');
-        const message = interaction.options.getString('message');
+        const message = interaction.options.getString('message') ?? "";
         const initialDelay = interaction.options.getInteger('initialdelay') ?? 0;
+        const catchupLimit = interaction.options.getInteger('catchup') ?? 0;
 
         try {
             const intervalType = secondsDelay ? IntervalTypes.seconds : IntervalTypes.cron;
@@ -86,9 +91,10 @@ export default {
                 tagList: tagList!,
                 intervalType: intervalType,
                 timestamp: Date.now() + initialDelay * MILISECONDS_PER_SECOND,
-                message: message ?? "",
+                message,
                 intervalSeconds: secondsDelay,
                 intervalCron: cron,
+                catchupLimit
             };
 
             const job = await db.insert(jobTable).values(dbEntry).returning();
