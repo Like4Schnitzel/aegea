@@ -38,8 +38,8 @@ export function catchUpOnPosts(client: Client<true>, job: Job) {
     
     for (let i = 0; i < job.catchupLimit; i++) {
         const msInterval = job.intervalSeconds! * MILISECONDS_PER_SECOND;
-        const currentTime = Date.now();
-        const nextPostTimestamp = job.timestamp + msInterval * Math.ceil((currentTime - job.timestamp) / msInterval);
+        const referenceTime = Date.now() - msInterval * i;
+        const nextPostTimestamp = job.timestamp + msInterval * Math.ceil((referenceTime - job.timestamp) / msInterval);
         const expectedPreviousPostTimeStamp = nextPostTimestamp - msInterval;
 
         countSentPostsBetweenTimes(job.id, expectedPreviousPostTimeStamp, nextPostTimestamp)
