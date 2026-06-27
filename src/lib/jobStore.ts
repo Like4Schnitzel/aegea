@@ -17,7 +17,10 @@ export function jobToString(job: Job, showChannel: boolean) {
     let string = "";
     string += `ID: ${job.id}; `;
     string += `Tags: \`${job.tagList}\`; `;
+    string += `Message: ${job.message}; `;
+    string += `Start time: <t:${Math.round(job.timestamp / MILISECONDS_PER_SECOND)}>; `;
     string += `Interval: ${job.intervalSeconds || job.intervalCron}${job.intervalType === IntervalTypes.seconds ? 's' : ''}; `;
+    string += `Catchup Limit: ${job.catchupLimit}; `;
     string += `Created by: <@${job.userId}>; `;
     if (showChannel) {
         string += `Channel: <#${job.channelId}>;`;
