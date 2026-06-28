@@ -21,6 +21,7 @@ export function jobToString(job: Job, showChannel: boolean) {
     string += `Start time: <t:${Math.round(job.timestamp / MILISECONDS_PER_SECOND)}>; `;
     string += `Interval: ${job.intervalSeconds || job.intervalCron}${job.intervalType === IntervalTypes.seconds ? 's' : ''}; `;
     string += `Catchup Limit: ${job.catchupLimit}; `;
+    string += `Paused: ${job.paused}; `;
     string += `Created by: <@${job.userId}>; `;
     if (showChannel) {
         string += `Channel: <#${job.channelId}>;`;
