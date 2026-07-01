@@ -2,7 +2,7 @@ import { createLogger, format, transports } from "winston";
 import DailyRotateFile from "winston-daily-rotate-file";
 import { logDir } from "./env";
 
-const logger = createLogger({
+export const logger = createLogger({
     format: format.simple(),
     defaultMeta: { service: 'user-service' },
     transports: [
@@ -10,5 +10,3 @@ const logger = createLogger({
         new DailyRotateFile({ filename: "aegea.%DATE%.log", dirname: logDir, maxFiles: 15 }),
     ]
 });
-
-export const log = logger.log;
