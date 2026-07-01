@@ -9,5 +9,6 @@ export const logger = createLogger({
     transports: [
         new transports.Console(),
         new DailyRotateFile({ filename: "aegea.%DATE%.log", dirname: logDir, maxFiles: 15, format: format.uncolorize() }),
-    ]
+        new DailyRotateFile({ filename: "aegea.error.%DATE%.log", dirname: logDir, maxFiles: 15, format: format.uncolorize(), level: "error" })
+    ],
 });
