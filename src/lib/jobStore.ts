@@ -7,15 +7,19 @@ import { eq } from "drizzle-orm";
 import { findJobById } from "./dbScripts";
 import { db } from "./env";
 import { logger } from "./logger";
+import { CronJob } from "cron";
 
 export type Job = Omit<typeof jobTable.$inferSelect, 'intervalType'> & { intervalType: IntervalTypes };
 export type JobTask = {
     jobId: number,
-    timeout: NodeJS.Timeout,
-    interval: NodeJS.Timeout | null
+    timeout: NodeJS.Timeout | null,
+    interval: NodeJS.Timeout | null,
+    cronJob: CronJob | null
 }
 
-export const jobTasks: JobTask[] = [];
+export const jobTasks: {
+   [x: number]: JobTask
+} = {};
 
 export function jobToString(job: Job, showChannel: boolean) {
     let string = "";
@@ -71,21 +75,37 @@ export function createJobTaskIfNotPaused(client: Client<true>, job: Job,
                 task.interval = setInterval(callback, msInterval);
             }, options.initialDelay !== undefined ? 0 : msToNextPost),
             interval: null,
+            cronJob: null
         };
-        jobTasks.push(task);
+        jobTasks[job.id] = task;
     } else if (job.intervalType === IntervalTypes.cron) {
-        throw Error("Not yet implemented.");
+        const task: JobTask = {
+            jobId: job.id,
+            cronJob: new CronJob(job.intervalCron!, callback, null, true),
+            interval: null,
+            timeout: null
+        };
+        jobTasks[job.id] = task;
     }
 }
 
 export function clearJobTask(jobId: number) {
-    const jobTask = jobTasks.find(j => j.jobId === jobId);
+    const jobTask = jobTasks[jobId];
     if (jobTask) {
-        clearTimeout(jobTask.timeout);
-        if (jobTask.interval) {
-            clearInterval(jobTask.interval);
+        if (jobTask.timeout) {
+            clearTimeout(jobTask.timeout);
+            if (jobTask.interval) {
+                clearInterval(jobTask.interval);
+            }
+        }
+
+        if (jobTask.cronJob) {
+            jobTask.cronJob.stop()?.catch(error => {
+                logger.error(error);
+            });
         }
     }
+    delete jobTasks[jobId];
 }
 
 export async function setJobPaused(interaction: ChatInputCommandInteraction, paused: boolean) {

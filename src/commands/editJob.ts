@@ -92,7 +92,7 @@ export default {
             message?: string,
             intervalSeconds?: number,
             timestamp?: number,
-            cron?: string,
+            intervalCron?: string,
             catchupLimit?: number,
             channelId?: string
         } = {};
@@ -100,7 +100,7 @@ export default {
         if (message) updateObject.message = message;
         if (intervalSeconds) updateObject.intervalSeconds = intervalSeconds;
         if (shiftTimestamp) updateObject.timestamp = job.timestamp + shiftTimestamp * MILISECONDS_PER_SECOND;
-        if (cron) updateObject.cron = cron;
+        if (cron) updateObject.intervalCron = cron;
         if (catchup) updateObject.catchupLimit = catchup;
         if (channel) updateObject.channelId = channel.id;
 
