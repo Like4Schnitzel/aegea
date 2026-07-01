@@ -57,7 +57,7 @@ client.on(Events.InteractionCreate, interaction => {
 client.once(Events.ClientReady, (readyClient) => {
     logger.info(`Ready! Logged in as ${readyClient.user.tag}`);
     getJobs().then(jobs => {
-        logger.info("Jobs loaded:", jobs);
+        logger.info(`Jobs loaded: ${JSON.stringify(jobs)}`);
         for (const job of jobs) {
             createJobTaskIfNotPaused(readyClient, job);
         }
