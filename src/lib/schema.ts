@@ -15,6 +15,7 @@ export const jobTable = sqliteTable("job", {
     intervalType: int("interval_type_id").notNull().references(() => intervalTypeTable.id),
     intervalSeconds: int("interval_seconds"),
     intervalCron: text("interval_cron"),
+    cronTimeZone: text("cron_time_zone"),
     message: text("message").default("").notNull(),
     catchupLimit: int("catchup_limit").default(1).notNull(),
     paused: int({ mode: "boolean" }).default(false).notNull()

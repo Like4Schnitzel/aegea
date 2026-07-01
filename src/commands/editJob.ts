@@ -6,6 +6,8 @@ import { jobTable } from "../lib/schema";
 import { eq } from "drizzle-orm";
 import { clearJobTask, createJobTaskIfNotPaused, jobToString } from "../lib/jobStore";
 import { logger } from "../lib/logger";
+import { IntervalTypes } from "../lib/intervals";
+import { CronValidationResult, validateCron } from "../lib/cron";
 
 const data = new SlashCommandBuilder()
     .setName('editjob')
@@ -46,6 +48,10 @@ const data = new SlashCommandBuilder()
     .addIntegerOption(option => 
         option.setName('catchup')
             .setDescription('How many missed posts to catch up on, should the bot miss any. Does not work for cron. Default: 1')
+    )
+    .addStringOption(option =>
+        option.setName("timezone")
+            .setDescription("Timezone to use for cron jobs. Defaults to the server's timezone.")
     );
 
 export default {
@@ -68,6 +74,7 @@ export default {
         const cron = interaction.options.getString('cron');
         const catchup = interaction.options.getInteger('catchup');
         const channel = interaction.options.getChannel('channel');
+        const timezone = interaction.options.getString('timezone');
 
         if (intervalSeconds && cron) {
             return interaction.reply({
@@ -87,6 +94,25 @@ export default {
             notes = "\nNOTES: " + notes;
         }
 
+        let intervalType;
+        if (cron) intervalType = IntervalTypes.cron;
+        else if (intervalSeconds) intervalType = IntervalTypes.seconds;
+
+        if (intervalType === IntervalTypes.cron) {
+            const result = validateCron(cron!, timezone);
+            if (result === CronValidationResult.invalidCron) {
+                return interaction.reply({
+                    content: "Error: The provided cron can't be parsed.",
+                    flags: MessageFlagsBitField.Flags.Ephemeral
+                });
+            } else if (result === CronValidationResult.invalidTimezone) {
+                return interaction.reply({
+                    content: "Error: The provided time zone can't be parsed.",
+                    flags: MessageFlagsBitField.Flags.Ephemeral
+                });
+            }
+        }
+
         const updateObject: {
             tagList?: string,
             message?: string,
@@ -94,7 +120,9 @@ export default {
             timestamp?: number,
             intervalCron?: string,
             catchupLimit?: number,
-            channelId?: string
+            channelId?: string,
+            cronTimeZone?: string,
+            intervalType?: IntervalTypes
         } = {};
         if (tagList) updateObject.tagList = tagList;
         if (message) updateObject.message = message;
@@ -103,6 +131,8 @@ export default {
         if (cron) updateObject.intervalCron = cron;
         if (catchup) updateObject.catchupLimit = catchup;
         if (channel) updateObject.channelId = channel.id;
+        if (timezone) updateObject.cronTimeZone = timezone;
+        if (intervalType != undefined) updateObject.intervalType = intervalType;
 
         try {
             const updatedJob = (await db.update(jobTable).set(updateObject).where(eq(jobTable.id, id)).returning()).at(0)!;

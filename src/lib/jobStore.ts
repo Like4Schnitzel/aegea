@@ -25,9 +25,15 @@ export function jobToString(job: Job, showChannel: boolean) {
     let string = "";
     string += `ID: ${job.id}; `;
     string += `Tags: \`${job.tagList}\`; `;
-    string += `Message: ${job.message}; `;
+    if (job.message.length > 0) string += `Message: \`${job.message}\`; `;
     string += `Start time: <t:${Math.round(job.timestamp / MILISECONDS_PER_SECOND)}>; `;
-    string += `Interval: ${job.intervalSeconds || job.intervalCron}${job.intervalType === IntervalTypes.seconds ? 's' : ''}; `;
+
+    string += `Interval: \``;
+    if (job.intervalType === IntervalTypes.cron) string += job.intervalCron;
+    else if (job.intervalType === IntervalTypes.seconds) string += `${job.intervalSeconds}s`;
+    string += `\`; `;
+
+    if (job.cronTimeZone) string += `Timezone: ${job.cronTimeZone}; `;
     string += `Catchup Limit: ${job.catchupLimit}; `;
     string += `Paused: ${job.paused}; `;
     string += `Created by: <@${job.userId}>; `;
@@ -61,7 +67,8 @@ export function createJobTaskIfNotPaused(client: Client<true>, job: Job,
             logger.error(e);
         });
     };
-    
+
+    logger.info(`Creating task for job: ${JSON.stringify(job)}`);
     if (job.intervalType === IntervalTypes.seconds) {
         const currentTime = Date.now();
         const msInterval = job.intervalSeconds! * MILISECONDS_PER_SECOND;
