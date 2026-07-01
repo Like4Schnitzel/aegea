@@ -3,7 +3,7 @@ import { discordToken } from '../lib/env';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { getJobs, setupDb } from '../lib/dbScripts';
-import { createJobTask } from '../lib/jobStore';
+import { createJobTaskIfNotPaused } from '../lib/jobStore';
 
 type ActualClient = Client<boolean> & {
     commands: Collection<string, { execute: (x: ChatInputCommandInteraction<CacheType>) => Promise<void> }>
@@ -58,7 +58,7 @@ client.once(Events.ClientReady, (readyClient) => {
     getJobs().then(jobs => {
         console.log("Jobs loaded:", jobs);
         for (const job of jobs) {
-            createJobTask(readyClient, job);
+            createJobTaskIfNotPaused(readyClient, job);
         }
         console.log("Job timeouts created!");
     }).catch(error => {

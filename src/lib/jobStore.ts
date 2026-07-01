@@ -1,8 +1,11 @@
-import { Client } from "discord.js";
+import { ChatInputCommandInteraction, Client, MessageFlagsBitField } from "discord.js";
 import { IntervalTypes } from "./intervals";
 import { catchUpOnPosts, sendPost } from "./post";
 import { jobTable } from "./schema";
 import { MILISECONDS_PER_SECOND } from "./consts";
+import { eq } from "drizzle-orm";
+import { findJobById } from "./dbScripts";
+import { db } from "./env";
 
 export type Job = Omit<typeof jobTable.$inferSelect, 'intervalType'> & { intervalType: IntervalTypes };
 export type JobTask = {
@@ -21,6 +24,7 @@ export function jobToString(job: Job, showChannel: boolean) {
     string += `Start time: <t:${Math.round(job.timestamp / MILISECONDS_PER_SECOND)}>; `;
     string += `Interval: ${job.intervalSeconds || job.intervalCron}${job.intervalType === IntervalTypes.seconds ? 's' : ''}; `;
     string += `Catchup Limit: ${job.catchupLimit}; `;
+    string += `Paused: ${job.paused}; `;
     string += `Created by: <@${job.userId}>; `;
     if (showChannel) {
         string += `Channel: <#${job.channelId}>;`;
@@ -28,7 +32,7 @@ export function jobToString(job: Job, showChannel: boolean) {
     return string;
 }
 
-export function createJobTask(client: Client<true>, job: Job,
+export function createJobTaskIfNotPaused(client: Client<true>, job: Job,
         options: {
             initialDelay?: number,
             checkCatchUp?: boolean
@@ -36,6 +40,11 @@ export function createJobTask(client: Client<true>, job: Job,
             checkCatchUp: true
         }
     ) {
+    if (job.paused) {
+        console.log("Job is paused, not creating task.");
+        return;
+    }
+    
     if (options.checkCatchUp) {
         catchUpOnPosts(client, job).catch(error => {
             console.error(error);
@@ -76,4 +85,39 @@ export function clearJobTask(jobId: number) {
             clearInterval(jobTask.interval);
         }
     }
+}
+
+export async function setJobPaused(interaction: ChatInputCommandInteraction, paused: boolean) {
+    const id = interaction.options.getInteger('id')!;
+    const job = await findJobById(id);
+
+    if (job?.guildId !== interaction.guildId) {
+        return interaction.reply({
+            content: `Couldn't find job with ID ${id}.`,
+            flags: MessageFlagsBitField.Flags.Ephemeral
+        });
+    }
+
+    if (job.paused === paused) {
+        return interaction.reply({
+            content: `Job is already ${paused ? "paused" : "active"}.`,
+            flags: MessageFlagsBitField.Flags.Ephemeral
+        });
+    }
+
+    const updatedJob = (await db.update(jobTable).set({ paused }).where(eq(jobTable.id, id)).returning()).at(0);
+    if (!updatedJob) {
+        return interaction.reply({
+            content: "Something went wrong.",
+            flags: MessageFlagsBitField.Flags.Ephemeral
+        });
+    }
+
+    clearJobTask(job.id);
+    createJobTaskIfNotPaused(interaction.client, updatedJob, { checkCatchUp: false });
+
+    return interaction.reply({
+        content: `Successfully ${paused ? "paused" : "resumed"} job: ${jobToString(updatedJob, false)}`,
+        flags: MessageFlagsBitField.Flags.Ephemeral
+    });
 }
