@@ -4,7 +4,7 @@ import { findJobById } from "../lib/dbScripts";
 import { db } from "../lib/env";
 import { jobTable } from "../lib/schema";
 import { eq } from "drizzle-orm";
-import { clearJobTask, createJobTask, jobToString } from "../lib/jobStore";
+import { clearJobTask, createJobTaskIfNotPaused, jobToString } from "../lib/jobStore";
 
 const data = new SlashCommandBuilder()
     .setName('editjob')
@@ -106,7 +106,7 @@ export default {
         try {
             const updatedJob = (await db.update(jobTable).set(updateObject).where(eq(jobTable.id, id)).returning()).at(0)!;
             clearJobTask(id);
-            createJobTask(interaction.client, updatedJob);
+            createJobTaskIfNotPaused(interaction.client, updatedJob);
             await interaction.reply({
                 content: `Job edited successfully! New values: ${jobToString(updatedJob, true)}${notes}`,
                 flags: MessageFlagsBitField.Flags.Ephemeral
