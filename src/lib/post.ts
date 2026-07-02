@@ -7,6 +7,19 @@ import { countSentPostsBetweenTimes, findPostBySitePostId, findSentPostsByJob } 
 import { IntervalTypes } from "./intervals";
 import { MILISECONDS_PER_SECOND } from "./consts";
 import { logger } from "./logger";
+import { Post } from "./types";
+
+function buildContentString(job: Job, attachment: Post) {
+    let string = "";
+    if (job.message.length > 0) {
+        string += `${job.message}\n`;
+    }
+    if (attachment.source) {
+        string += `[[source](<${attachment.source}>)] `;
+    }
+    string += `[[link](<${attachment.postUrl}>)] [ [file](${attachment.url}) ]`;
+    return string;
+}
 
 export async function sendPost(client: Client<true>, job: Job) {
     const channel = await client.channels.fetch(job.channelId);
@@ -29,7 +42,7 @@ export async function sendPost(client: Client<true>, job: Job) {
         await db.insert(sentTable).values({ jobId: job.id, postId, timestamp: Date.now() });
 
         return channel.send({
-            content: `${job.message}\n[[source](<${attachment.source}>)] [[link](<${attachment.postUrl}>)] [ [file](${attachment.fileUrl}) ]`
+            content: buildContentString(job, attachment)
         });
     }
 }
